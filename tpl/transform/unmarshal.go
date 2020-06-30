@@ -14,6 +14,7 @@
 package transform
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"strings"
 
@@ -27,7 +28,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-// Unmarshal unmarshals the data given, which can be either a string
+// Unmarshal unmarshals the data given, which can be either a string, json.RawMessage
 // or a Resource. Supported formats are JSON, TOML, YAML, and CSV.
 // You can optionally provide an options map as the first argument.
 func (ns *Namespace) Unmarshal(args ...interface{}) (interface{}, error) {
@@ -87,9 +88,16 @@ func (ns *Namespace) Unmarshal(args ...interface{}) (interface{}, error) {
 		})
 	}
 
-	dataStr, err := cast.ToStringE(data)
-	if err != nil {
-		return nil, errors.Errorf("type %T not supported", data)
+	var dataStr string
+
+	if js, ok := data.(json.RawMessage); ok {
+		dataStr = string(js)
+	} else {
+		var err error
+		dataStr, err = cast.ToStringE(data)
+		if err != nil {
+			return nil, errors.Errorf("type %T not supported", data)
+		}
 	}
 
 	key := helpers.MD5String(dataStr)
